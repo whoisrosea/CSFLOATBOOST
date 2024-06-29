@@ -1,15 +1,13 @@
 const axios = require("axios");
 
 const apikey = "CXhSmYc1ttBFLXOGBTHnxOFNdU0WkRZy";
+const steamID = "76561198881086012";
 
-// Настройка HTTP заголовков
 const config = {
   headers: {
     Authorization: apikey,
   },
 };
-
-const steamID = "76561198881086012";
 
 const getStallUrl = `https://csfloat.com/api/v1/users/${steamID}/stall`;
 const deleteListinglUrl = `https://csfloat.com/api/v1/listings/`;
@@ -40,7 +38,7 @@ const relistItems = async () => {
         console.log("Listing deleted for item ID:", itemID);
       } catch (error) {
         console.error("Ошибка при удалении листинга:", error);
-        continue; // Skip this iteration on delete failure
+        continue;
       }
 
       try {
@@ -70,4 +68,4 @@ const scheduleRelistItems = () => {
     });
 };
 
-scheduleRelistItems(); // Start the first execution
+scheduleRelistItems();
