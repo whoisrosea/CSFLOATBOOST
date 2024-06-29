@@ -1,6 +1,9 @@
 name: Relist CSFloat Items
 
 on:
+  push:
+    branches:
+      - master  # Замените на имя вашей основной ветки, если она отличается
   schedule:
     - cron: '5 */3 * * *'  # Это cron-выражение запускает скрипт каждые 3 часа и 5 минут
 
@@ -19,7 +22,7 @@ jobs:
 
       - name: Install dependencies
         run: npm install
-        working-directory: ./path-to-your-script-directory # Замените на актуальную директорию, если нужно
+        working-directory: . # Замените на актуальную директорию, если нужно
 
       - name: Run relist script
         run: node relistItems.js
