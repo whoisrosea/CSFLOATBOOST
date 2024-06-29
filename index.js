@@ -55,4 +55,19 @@ const relistItems = async () => {
   }
 };
 
-relistItems();
+const runInterval = 3 * 3600 * 1000 + 5 * 60 * 1000; // 3 hours and 5 minutes in milliseconds
+
+const scheduleRelistItems = () => {
+  relistItems()
+    .then(() => {
+      console.log("relistItems completed, scheduling next run...");
+      setTimeout(scheduleRelistItems, runInterval);
+    })
+    .catch((error) => {
+      console.error("Error running relistItems:", error);
+      console.log("Scheduling next attempt...");
+      setTimeout(scheduleRelistItems, runInterval);
+    });
+};
+
+scheduleRelistItems(); // Start the first execution
