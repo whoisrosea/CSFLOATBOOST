@@ -1,32 +1,58 @@
-const buildFirefoxDriver = require("./drivers/driverSetup");
-const { listAction } = require("./actions/listAction");
-const { removeListingAction } = require("./actions/removeListingAction");
+const axios = require("axios");
 
-async function executeActions() {
-  const profilePath =
-    "/Users/whoisrosea/Library/Application Support/Firefox/Profiles/78yboywm.default-release";
+const apikey = "CXhSmYc1ttBFLXOGBTHnxOFNdU0WkRZy";
 
-  const driver = buildFirefoxDriver(profilePath);
+// Настройка HTTP заголовков
+const config = {
+  headers: {
+    Authorization: apikey,
+  },
+};
 
+const steamID = "76561198881086012";
+
+const getStallUrl = `https://csfloat.com/api/v1/users/${steamID}/stall`;
+const deleteListinglUrl = `https://csfloat.com/api/v1/listings/`;
+const postListingUrl = "https://csfloat.com/api/v1/listings/";
+
+const relistItems = async () => {
   try {
-    await listAction(driver);
-    driver.sleep(300000);
-    await removeListingAction(driver);
+    const stallResponse = await axios.get(getStallUrl, config);
+    console.log("Данные получены:", stallResponse.data);
+
+    const itemsList = stallResponse.data.data;
+
+    for (const item of itemsList) {
+      const assetID = item.item.asset_id;
+      const itemID = item.id;
+      const price = item.price;
+
+      const postData = {
+        asset_id: assetID,
+        price: price,
+        type: "buy_now",
+      };
+
+      const deleteListingUrlFull = `${deleteListinglUrl}${itemID}`;
+
+      try {
+        await axios.delete(deleteListingUrlFull, config);
+        console.log("Listing deleted for item ID:", itemID);
+      } catch (error) {
+        console.error("Ошибка при удалении листинга:", error);
+        continue; // Skip this iteration on delete failure
+      }
+
+      try {
+        const postResponse = await axios.post(postListingUrl, postData, config);
+        console.log("Ответ сервера на новый листинг:", postResponse.data);
+      } catch (error) {
+        console.error("Ошибка при создании нового листинга:", error);
+      }
+    }
   } catch (error) {
-    console.error("Error during navigation:", error);
-  } finally {
-    await driver.quit();
+    console.error("Ошибка при получении данных стойки:", error);
   }
-}
+};
 
-function main() {
-  executeActions();
-
-  const interval = (3 * 60 + 15) * 60 * 1000;
-  
-  setInterval(() => {
-    executeActions();
-  }, interval);
-}
-
-main();
+relistItems();
