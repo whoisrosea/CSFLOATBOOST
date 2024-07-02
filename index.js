@@ -1,19 +1,23 @@
 const axios = require("axios");
 
-const apikey = "CXhSmYc1ttBFLXOGBTHnxOFNdU0WkRZy";
-const steamID = "76561198881086012";
-
-const config = {
-  headers: {
-    Authorization: apikey,
+const keys = [
+  {
+    name: "Ilya",
+    apikey: "CXhSmYc1ttBFLXOGBTHnxOFNdU0WkRZy",
+    steamID: "76561198881086012",
   },
-};
+];
 
-const getStallUrl = `https://csfloat.com/api/v1/users/${steamID}/stall`;
-const deleteListinglUrl = `https://csfloat.com/api/v1/listings/`;
-const postListingUrl = "https://csfloat.com/api/v1/listings/";
+const relistItems = async (apikey, steamID) => {
+  const getStallUrl = `https://csfloat.com/api/v1/users/${steamID}/stall`;
+  const deleteListinglUrl = `https://csfloat.com/api/v1/listings/`;
+  const postListingUrl = "https://csfloat.com/api/v1/listings/";
+  const config = {
+    headers: {
+      Authorization: apikey,
+    },
+  };
 
-const relistItems = async () => {
   try {
     const stallResponse = await axios.get(getStallUrl, config);
     console.log("Данные получены:", stallResponse.data);
@@ -53,7 +57,12 @@ const relistItems = async () => {
   }
 };
 
-relistItems();
+for (const key of keys) {
+  relistItems(key.apikey, key.steamID);
+}
+
+// рандом интервал 1-2 мин
+// action 
 
 // const runInterval = 3 * 3600 * 1000 + 5 * 60 * 1000; // 3 hours and 5 minutes in milliseconds
 
