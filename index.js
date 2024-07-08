@@ -52,7 +52,6 @@ const getLastItemCreatedAt = async (user) => {
   }
 };
 
-
 const relistItems = async (user) => {
   const { apikey, steamID, timer } = user;
 
@@ -145,22 +144,27 @@ const startCronJob = async () => {
     await getLastItemCreatedAt(user);
   }
 
+  const now = new Date();
+  const intervalInMs = 3 * 60 * 60 * 1000; 
+
   for (const user of users) {
-    const createdAt = new Date(user.lastItemCreatedAt);
-    const now = new Date();
+    if (user.lastItemCreatedAt) {
+      const createdAt = new Date(user.lastItemCreatedAt);
+      const diffMs = createdAt.getTime() + intervalInMs - now.getTime();
+      const diffMinutes = Math.ceil(diffMs / (1000 * 60));
+      const cronExpression = `*/${diffMinutes} * * * *`;
 
-    const diffMs = createdAt.getTime() + 3 * 60 * 60 * 1000 - now.getTime();
-    const diffHours = Math.ceil(diffMs / (1000 * 60 * 60));
-    const cronExpression = `0 */${diffHours} * * *`;
+      console.log(
+        `Запуск задачи для пользователя ${user.name} через ${diffMinutes} минут`
+      );
 
-    console.log(
-      `Запуск задачи для пользователя ${user.name} через ${diffHours} часов`
-    );
-
-    cron.schedule(cronExpression, () => {
-      console.log(`Выполнение задачи для пользователя ${user.name}`);
-      relistItems(user);
-    });
+      cron.schedule(cronExpression, () => {
+        console.log(`Выполнение задачи для пользователя ${user.name}`);
+        relistItems(user);
+      });
+    } else {
+      console.log(`Не удалось вычислить время для пользователя ${user.name}`);
+    }
   }
 };
 
