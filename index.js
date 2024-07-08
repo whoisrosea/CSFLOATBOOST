@@ -118,13 +118,14 @@ const relistItems = async (user) => {
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const startCronJob = () => {
+const startCronJob = async () => {
   for (const user of users) {
     console.log(`Выполнение задачи для пользователя ${user.name}`);
-    relistItems(user);
+    await relistItems(user); // Ждем завершения выполнения relistItems для текущего пользователя
   }
+
   for (const user of users) {
-    const createdAt = new Date(user.lastItemCreatedAt || user.created_at);
+    const createdAt = new Date(user.lastItemCreatedAt);
     const now = new Date();
 
     const diffMs = createdAt.getTime() + 3 * 60 * 60 * 1000 - now.getTime();
@@ -142,7 +143,13 @@ const startCronJob = () => {
   }
 };
 
-startCronJob();
+startCronJob()
+  .then(() => {
+    console.log("Все cron задачи настроены успешно");
+  })
+  .catch((err) => {
+    console.error("Ошибка при настройке cron задач:", err);
+  });
 
 // Для предотвращения выхода приложения
 app.get("/", (req, res) => {
