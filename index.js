@@ -1,4 +1,5 @@
 const axios = require("axios");
+const cron = require("node-cron");
 
 const keys = [
   {
@@ -20,13 +21,13 @@ const keys = [
     timer: true,
   },
   {
-    name: "ilusha", // ( 5 days )
+    name: "ilusha",
     apikey: "ZBrBwocM9Flu-lw6JpdgImDOfzmULioJ",
     steamID: "76561199082819227",
     timer: true,
   },
   {
-    name: "maxim_blohin", // ( 2 days )
+    name: "maxim_blohin",
     apikey: "Cx_RRfHU3hLcBO3vn4AA2zDpdxbOnfJb",
     steamID: "76561199493367613",
     timer: true,
@@ -89,10 +90,26 @@ const relistItems = async (apikey, steamID, timer) => {
   }
 };
 
-for (const key of keys) {
-  relistItems(key.apikey, key.steamID, key.timer);
-}
+const startCronJob = () => {
+  cron.schedule("0 */3 * * *", () => {
+    console.log("Запуск задач каждые 3 часа");
+    for (const key of keys) {
+      relistItems(key.apikey, key.steamID, key.timer);
+    }
+  });
+};
 
-for (const key of keys) {
-  relistItems(key.apikey, key.steamID, key.timer);
-}
+startCronJob();
+
+// Для предотвращения выхода приложения
+const express = require("express");
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.get("/", (req, res) => {
+  res.send("Cron job is running");
+});
+
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
