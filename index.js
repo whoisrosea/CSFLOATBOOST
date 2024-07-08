@@ -91,6 +91,13 @@ const relistItems = async (apikey, steamID, timer) => {
 };
 
 const startCronJob = () => {
+  // Запуск задания сразу при старте приложения
+  console.log("Запуск задач при старте приложения");
+  for (const key of keys) {
+    relistItems(key.apikey, key.steamID, key.timer);
+  }
+
+  // Запуск задания каждые 3 часа
   cron.schedule("0 */3 * * *", () => {
     console.log("Запуск задач каждые 3 часа");
     for (const key of keys) {
