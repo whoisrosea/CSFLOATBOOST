@@ -55,6 +55,16 @@ const relistItems = async (user) => {
       const itemID = item.id;
       const price = item.price;
 
+      const itemCreatedAt = new Date(item.created_at);
+      const currentTime = new Date();
+      const diffMs = currentTime - itemCreatedAt;
+      if (diffMs < 3 * 60 * 60 * 1000) {
+        console.log(
+          `Вещь ${itemID} у пользователя ${user.name} не выждала 3 часа`
+        );
+        continue;
+      }
+
       const postData = {
         asset_id: assetID,
         price: price,
@@ -110,10 +120,13 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const startCronJob = () => {
   for (const user of users) {
+    console.log(`Выполнение задачи для пользователя ${user.name}`);
+    relistItems(user);
+  }
+  for (const user of users) {
     const createdAt = new Date(user.lastItemCreatedAt || user.created_at);
     const now = new Date();
 
-    // Вычисляем время до следующего выполнения задачи через 3 часа
     const diffMs = createdAt.getTime() + 3 * 60 * 60 * 1000 - now.getTime();
     const diffHours = Math.ceil(diffMs / (1000 * 60 * 60));
     const cronExpression = `0 */${diffHours} * * *`;
