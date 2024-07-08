@@ -1,82 +1,134 @@
 const axios = require("axios");
 
-const keys = [
-  {
-    name: "Ilya",
-    apikey: "CXhSmYc1ttBFLXOGBTHnxOFNdU0WkRZy",
-    steamID: "76561198881086012",
-  },
-];
+const API_KEY = "CXhSmYc1ttBFLXOGBTHnxOFNdU0WkRZy";
 
-const relistItems = async (apikey, steamID) => {
-  const getStallUrl = `https://csfloat.com/api/v1/users/${steamID}/stall`;
-  const deleteListinglUrl = `https://csfloat.com/api/v1/listings/`;
-  const postListingUrl = "https://csfloat.com/api/v1/listings/";
-  const config = {
-    headers: {
-      Authorization: apikey,
-    },
-  };
+const headers = {
+  Authorization: API_KEY,
+};
+
+let knownListingsIds = new Set();
+
+const { Builder, By, until } = require("selenium-webdriver");
+const firefox = require("selenium-webdriver/firefox");
+const path = require("path");
+
+async function fetchBuffPrice(id) {
+  const profilePath = path.join(
+    "/Users/whoisrosea/Library/Application Support/Firefox/Profiles/78yboywm.default-release"
+  );
+
+  let options = new firefox.Options();
+  options.setProfile(profilePath);
+  options.addArguments("--headless");
+
+  let driver = await new Builder()
+    .forBrowser("firefox")
+    .setFirefoxOptions(options)
+    .build();
 
   try {
-    const stallResponse = await axios.get(getStallUrl, config);
-    console.log("Данные получены:", stallResponse.data);
+    await driver.get("https://csfloat.com/search?sort_by=most_recent");
 
-    const itemsList = stallResponse.data.data;
+    let xpath = `//item-card[contains(@data-betterfloat, '"id":"${id}"')]`;
 
-    for (const item of itemsList) {
-      const assetID = item.item.asset_id;
-      const itemID = item.id;
-      const price = item.price;
+    let itemElement = await driver.wait(
+      until.elementLocated(By.xpath(xpath)),
+      20000
+    ); // Ждем до 20 секунд
 
-      const postData = {
-        asset_id: assetID,
-        price: price,
-        type: "buy_now",
-      };
-
-      const deleteListingUrlFull = `${deleteListinglUrl}${itemID}`;
-
-      try {
-        await axios.delete(deleteListingUrlFull, config);
-        console.log("Listing deleted for item ID:", itemID);
-      } catch (error) {
-        console.error("Ошибка при удалении листинга:", error);
-        continue;
-      }
-
-      try {
-        const postResponse = await axios.post(postListingUrl, postData, config);
-        console.log("Ответ сервера на новый листинг:", postResponse.data);
-      } catch (error) {
-        console.error("Ошибка при создании нового листинга:", error);
-      }
+    if (itemElement) {
+      console.log("Element found.");
+    } else {
+      console.log("Element not found.");
     }
+
+    let buffPriceElement = await driver.findElement(
+      By.css("span.betterfloat-sale-tag")
+    );
+    return await buffPriceElement.getText();
   } catch (error) {
-    console.error("Ошибка при получении данных стойки:", error);
+    console.error("Error finding item:", error);
+    return "-$0.00";
+  } finally {
+    await driver.quit();
+  }
+}
+
+function compareNewListings(currentListings) {
+  if (knownListingsIds.size === 0) {
+    currentListings.forEach((ad) => knownListingsIds.add(ad.id));
+    return currentListings;
+  } else {
+    const newAds = currentListings.filter((ad) => !knownListingsIds.has(ad.id));
+    newAds.forEach((ad) => knownListingsIds.add(ad.id));
+    return newAds;
+  }
+}
+
+const fetchSortedListings = async () => {
+  const params = {
+    sort_by: "most_recent",
+  };
+  const config = { headers, params };
+  const url = "https://csfloat.com/api/v1/listings?limit=40";
+
+  try {
+    const response = await axios.get(url, config);
+    return response.data;
+  } catch (error) {
+    console.error("Ошибка при запросе всех обьявлений", error);
+    return [];
   }
 };
 
-for (const key of keys) {
-  relistItems(key.apikey, key.steamID);
+async function filterListings(listings) {
+  const filteredListings = [];
+
+  for (const listing of listings) {
+    console.log("////////////////////////");
+
+    const price = listing.price;
+    const float = parseFloat(listing.item.float_value);
+    const name = listing.item.item_name;
+    console.log("candidate", name);
+    console.log("candidate price", price);
+    console.log("candidate float", float);
+    if (float < 0.01 && price > 200 && listing.type === "buy_now") {
+      try {
+        const buffPrice = await fetchBuffPrice(listing.id);
+        const sign = buffPrice.charAt(0);
+        const numericBuffPrice =
+          price + parseFloat(buffPrice.replace(/[\+\-$]/g, ""));
+        const percentage = 100 - (price / numericBuffPrice) * 100;
+        console.log("candidate buffPrice", buffPrice);
+        console.log("percent", percentage);
+        if (percentage > 10 && sign === "-") {
+          console.log(
+            "//////////////////////////////////////////////// buy ////////////////////////////////////////////////",
+            listing.id
+          );
+          filteredListings.push(listing);
+        }
+      } catch (error) {
+        console.error(`Error fetching Buff price for ${name}:`, error);
+      }
+      console.log("////////////////////////");
+    }
+  }
+
+  return filteredListings;
 }
 
-// рандом интервал 1-2 мин
-// action 
+async function fetchAndCompareListings() {
+  const listings = await fetchSortedListings();
+  const newListings = compareNewListings(listings);
+  const filteredListings = await filterListings(newListings);
+  console.log("////////////////////////");
+  console.log("filteredListings.length =", filteredListings.length);
+}
 
-// const runInterval = 3 * 3600 * 1000 + 5 * 60 * 1000; // 3 hours and 5 minutes in milliseconds
+function startFetchingListings() {
+  setInterval(fetchAndCompareListings, 20000);
+}
 
-// const scheduleRelistItems = () => {
-//   relistItems()
-//     .then(() => {
-//       console.log("relistItems completed, scheduling next run...");
-//       setTimeout(scheduleRelistItems, runInterval);
-//     })
-//     .catch((error) => {
-//       console.error("Error running relistItems:", error);
-//       console.log("Scheduling next attempt...");
-//       setTimeout(scheduleRelistItems, runInterval);
-//     });
-// };
-
-// scheduleRelistItems();
+startFetchingListings();
