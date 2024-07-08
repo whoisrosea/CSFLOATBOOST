@@ -40,15 +40,18 @@ const getLastItemCreatedAt = async (user) => {
   try {
     const stallResponse = await axios.get(getStallUrl, config);
     const itemsList = stallResponse.data.data;
-    console.log(itemsList);
+
     if (itemsList.length > 0) {
-      user.lastItemCreatedAt = itemsList[itemsList.length - 1].created_At;
+      user.lastItemCreatedAt = itemsList[itemsList.length - 1].created_at;
       console.log(
         `Время последнего листинга: ${user.lastItemCreatedAt} установлено пользователю ${user.name}`
       );
     }
-  } catch (error) {}
+  } catch (error) {
+    console.log(error);
+  }
 };
+
 
 const relistItems = async (user) => {
   const { apikey, steamID, timer } = user;
