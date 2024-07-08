@@ -1,134 +1,98 @@
 const axios = require("axios");
 
-const API_KEY = "CXhSmYc1ttBFLXOGBTHnxOFNdU0WkRZy";
+const keys = [
+  {
+    name: "Ilya",
+    apikey: "CXhSmYc1ttBFLXOGBTHnxOFNdU0WkRZy",
+    steamID: "76561198881086012",
+    timer: false,
+  },
+  {
+    name: "andrey_belskyy",
+    apikey: "TqkXBKPQk_1qfDCiao414WsxsqYbv2nL",
+    steamID: "76561198907322479",
+    timer: true,
+  },
+  {
+    name: "vlad_chinyaev",
+    apikey: "VliITsIqJz6cqGM0SZnlh4qGia96zT8T",
+    steamID: "76561198813710478",
+    timer: true,
+  },
+  {
+    name: "ilusha", // ( 5 days )
+    apikey: "ZBrBwocM9Flu-lw6JpdgImDOfzmULioJ",
+    steamID: "76561199082819227",
+    timer: true,
+  },
+  {
+    name: "maxim_blohin", // ( 2 days )
+    apikey: "Cx_RRfHU3hLcBO3vn4AA2zDpdxbOnfJb",
+    steamID: "76561199493367613",
+    timer: true,
+  },
+];
 
-const headers = {
-  Authorization: API_KEY,
-};
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-let knownListingsIds = new Set();
-
-const { Builder, By, until } = require("selenium-webdriver");
-const firefox = require("selenium-webdriver/firefox");
-const path = require("path");
-
-async function fetchBuffPrice(id) {
-  const profilePath = path.join(
-    "/Users/whoisrosea/Library/Application Support/Firefox/Profiles/78yboywm.default-release"
-  );
-
-  let options = new firefox.Options();
-  options.setProfile(profilePath);
-  options.addArguments("--headless");
-
-  let driver = await new Builder()
-    .forBrowser("firefox")
-    .setFirefoxOptions(options)
-    .build();
-
-  try {
-    await driver.get("https://csfloat.com/search?sort_by=most_recent");
-
-    let xpath = `//item-card[contains(@data-betterfloat, '"id":"${id}"')]`;
-
-    let itemElement = await driver.wait(
-      until.elementLocated(By.xpath(xpath)),
-      20000
-    ); // Ждем до 20 секунд
-
-    if (itemElement) {
-      console.log("Element found.");
-    } else {
-      console.log("Element not found.");
-    }
-
-    let buffPriceElement = await driver.findElement(
-      By.css("span.betterfloat-sale-tag")
-    );
-    return await buffPriceElement.getText();
-  } catch (error) {
-    console.error("Error finding item:", error);
-    return "-$0.00";
-  } finally {
-    await driver.quit();
-  }
-}
-
-function compareNewListings(currentListings) {
-  if (knownListingsIds.size === 0) {
-    currentListings.forEach((ad) => knownListingsIds.add(ad.id));
-    return currentListings;
-  } else {
-    const newAds = currentListings.filter((ad) => !knownListingsIds.has(ad.id));
-    newAds.forEach((ad) => knownListingsIds.add(ad.id));
-    return newAds;
-  }
-}
-
-const fetchSortedListings = async () => {
-  const params = {
-    sort_by: "most_recent",
+const relistItems = async (apikey, steamID, timer) => {
+  const getStallUrl = `https://csfloat.com/api/v1/users/${steamID}/stall`;
+  const deleteListinglUrl = `https://csfloat.com/api/v1/listings/`;
+  const postListingUrl = "https://csfloat.com/api/v1/listings/";
+  const config = {
+    headers: {
+      Authorization: apikey,
+    },
   };
-  const config = { headers, params };
-  const url = "https://csfloat.com/api/v1/listings?limit=40";
 
   try {
-    const response = await axios.get(url, config);
-    return response.data;
+    const stallResponse = await axios.get(getStallUrl, config);
+    console.log("Данные получены:", stallResponse.data);
+
+    const itemsList = stallResponse.data.data;
+
+    for (let i = 0; i < itemsList.length; i++) {
+      const item = itemsList[i];
+      const assetID = item.item.asset_id;
+      const itemID = item.id;
+      const price = item.price;
+
+      const postData = {
+        asset_id: assetID,
+        price: price,
+        type: "buy_now",
+      };
+
+      const deleteListingUrlFull = `${deleteListinglUrl}${itemID}`;
+
+      if (timer) {
+        await sleep(i * 30000); // Добавляем задержку
+      }
+
+      try {
+        await axios.delete(deleteListingUrlFull, config);
+        console.log("Listing deleted for item ID:", itemID);
+      } catch (error) {
+        console.error("Ошибка при удалении листинга:", error);
+        continue; // Пропускаем и идем к следующему элементу
+      }
+
+      try {
+        const postResponse = await axios.post(postListingUrl, postData, config);
+        console.log("Ответ сервера на новый листинг:", postResponse.data);
+      } catch (error) {
+        console.error("Ошибка при создании нового листинга:", error);
+      }
+    }
   } catch (error) {
-    console.error("Ошибка при запросе всех обьявлений", error);
-    return [];
+    console.error("Ошибка при получении данных стойки:", error);
   }
 };
 
-async function filterListings(listings) {
-  const filteredListings = [];
-
-  for (const listing of listings) {
-    console.log("////////////////////////");
-
-    const price = listing.price;
-    const float = parseFloat(listing.item.float_value);
-    const name = listing.item.item_name;
-    console.log("candidate", name);
-    console.log("candidate price", price);
-    console.log("candidate float", float);
-    if (float < 0.01 && price > 200 && listing.type === "buy_now") {
-      try {
-        const buffPrice = await fetchBuffPrice(listing.id);
-        const sign = buffPrice.charAt(0);
-        const numericBuffPrice =
-          price + parseFloat(buffPrice.replace(/[\+\-$]/g, ""));
-        const percentage = 100 - (price / numericBuffPrice) * 100;
-        console.log("candidate buffPrice", buffPrice);
-        console.log("percent", percentage);
-        if (percentage > 10 && sign === "-") {
-          console.log(
-            "//////////////////////////////////////////////// buy ////////////////////////////////////////////////",
-            listing.id
-          );
-          filteredListings.push(listing);
-        }
-      } catch (error) {
-        console.error(`Error fetching Buff price for ${name}:`, error);
-      }
-      console.log("////////////////////////");
-    }
-  }
-
-  return filteredListings;
+for (const key of keys) {
+  relistItems(key.apikey, key.steamID, key.timer);
 }
 
-async function fetchAndCompareListings() {
-  const listings = await fetchSortedListings();
-  const newListings = compareNewListings(listings);
-  const filteredListings = await filterListings(newListings);
-  console.log("////////////////////////");
-  console.log("filteredListings.length =", filteredListings.length);
+for (const key of keys) {
+  relistItems(key.apikey, key.steamID, key.timer);
 }
-
-function startFetchingListings() {
-  setInterval(fetchAndCompareListings, 20000);
-}
-
-startFetchingListings();
