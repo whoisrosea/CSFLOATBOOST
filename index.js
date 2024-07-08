@@ -55,6 +55,10 @@ const relistItems = async (user) => {
       const itemID = item.id;
       const price = item.price;
 
+      if (itemsList.length > 0) {
+        user.lastItemCreatedAt = itemsList[itemsList.length - 1].created_at;
+      }
+
       const itemCreatedAt = new Date(item.created_at);
       const currentTime = new Date();
       const diffMs = currentTime - itemCreatedAt;
@@ -105,9 +109,6 @@ const relistItems = async (user) => {
     }
 
     // Обновляем время создания последнего предмета
-    if (itemsList.length > 0) {
-      user.lastItemCreatedAt = itemsList[itemsList.length - 1].created_at;
-    }
   } catch (error) {
     console.error(
       `Ошибка при получении данных стойки у пользователя ${user.name}:`,
