@@ -40,7 +40,7 @@ const getLastItemCreatedAt = async (user) => {
   try {
     const stallResponse = await axios.get(getStallUrl, config);
     const itemsList = stallResponse.data.data;
-    if (itemsList > 0) {
+    if (itemsList.length > 0) {
       user.lastItemCreatedAt = itemsList[itemsList.length - 1].created_At;
       console.log(
         `Время последнего листинга: ${user.lastItemCreatedAt} установлено пользователю ${user.name}`
