@@ -28,6 +28,27 @@ let users = [
   },
 ];
 
+const getLastItemCreatedAt = async (user) => {
+  const { apikey, steamID, timer } = user;
+
+  const config = {
+    headers: {
+      Authorization: apikey,
+    },
+  };
+  const getStallUrl = `https://csfloat.com/api/v1/users/${steamID}/stall`;
+  try {
+    const stallResponse = await axios.get(getStallUrl, config);
+    const itemsList = stallResponse.data.data;
+    if (itemsList > 0) {
+      user.lastItemCreatedAt = itemsList[itemsList.length - 1].created_At;
+      console.log(
+        `Время последнего листинга: ${user.lastItemCreatedAt} установлено пользователю ${user.name}`
+      );
+    }
+  } catch (error) {}
+};
+
 const relistItems = async (user) => {
   const { apikey, steamID, timer } = user;
 
@@ -43,8 +64,8 @@ const relistItems = async (user) => {
   try {
     const stallResponse = await axios.get(getStallUrl, config);
     console.log(
-      `Данные получены для пользователя ${user.name}:`,
-      stallResponse.data
+      `Данные получены для пользователя ${user.name}:`
+      // stallResponse.data
     );
 
     const itemsList = stallResponse.data.data;
@@ -54,10 +75,6 @@ const relistItems = async (user) => {
       const assetID = item.item.asset_id;
       const itemID = item.id;
       const price = item.price;
-
-      if (itemsList.length > 0) {
-        user.lastItemCreatedAt = itemsList[itemsList.length - 1].created_at;
-      }
 
       const itemCreatedAt = new Date(item.created_at);
       const currentTime = new Date();
@@ -96,10 +113,8 @@ const relistItems = async (user) => {
 
       try {
         const postResponse = await axios.post(postListingUrl, postData, config);
-        console.log(
-          `Ответ сервера на новый листинг у пользователя ${user.name}:`,
-          postResponse.data
-        );
+        console.log(`Успешный листинг у пользователя ${user.name}:`);
+        user.lastItemCreatedAt = postResponse.data.created_at;
       } catch (error) {
         console.error(
           `Ошибка при создании нового листинга у пользователя ${user.name}:`,
@@ -107,8 +122,9 @@ const relistItems = async (user) => {
         );
       }
     }
-
-    // Обновляем время создания последнего предмета
+    if (itemsList.length > 0) {
+      user.lastItemCreatedAt = itemsList[itemsList.length - 1].created_at;
+    }
   } catch (error) {
     console.error(
       `Ошибка при получении данных стойки у пользователя ${user.name}:`,
@@ -121,8 +137,8 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const startCronJob = async () => {
   for (const user of users) {
-    console.log(`Выполнение задачи для пользователя ${user.name}`);
-    await relistItems(user); // Ждем завершения выполнения relistItems для текущего пользователя
+    console.log(`получение времени  для пользователя ${user.name}`);
+    await getLastItemCreatedAt(user);
   }
 
   for (const user of users) {
