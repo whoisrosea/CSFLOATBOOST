@@ -29,7 +29,7 @@ let users = [
 ];
 
 const getLastItemCreatedAt = async (user) => {
-  const { apikey, steamID, timer } = user;
+  const { apikey, steamID } = user;
 
   const config = {
     headers: {
@@ -40,6 +40,7 @@ const getLastItemCreatedAt = async (user) => {
   try {
     const stallResponse = await axios.get(getStallUrl, config);
     const itemsList = stallResponse.data.data;
+    console.log(itemsList);
     if (itemsList.length > 0) {
       user.lastItemCreatedAt = itemsList[itemsList.length - 1].created_At;
       console.log(
