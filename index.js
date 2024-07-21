@@ -31,7 +31,7 @@ let users = [
     apikey: "p7TtpCgXJ6NM7Go4pjtAeahdsYfno_Sn",
     steamID: "76561198976275638",
     lastItemCreatedAt: null,
-    timer: 0,
+    timer: 40000,
   },
 ];
 
