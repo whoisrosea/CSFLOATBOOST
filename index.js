@@ -33,6 +33,13 @@ let users = [
     lastItemCreatedAt: null,
     timer: 40000,
   },
+  {
+    name: "Blohin",
+    apikey: "Cx_RRfHU3hLcBO3vn4AA2zDpdxbOnfJb",
+    steamID: "76561199493367613",
+    lastItemCreatedAt: null,
+    timer: 40000,
+  },
 ];
 
 const getLastItemCreatedAt = async (user) => {
