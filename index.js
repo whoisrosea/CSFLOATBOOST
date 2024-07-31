@@ -27,19 +27,27 @@ let users = [
     timer: 30000,
   },
   {
-    name: "Ema",
+    name: "CHUVANOV", // 21.09 end
     apikey: "p7TtpCgXJ6NM7Go4pjtAeahdsYfno_Sn",
     steamID: "76561198976275638",
     lastItemCreatedAt: null,
     timer: 40000,
   },
   {
-    name: "Blohin",
+    name: "Blohin", // 03.08 end
     apikey: "Cx_RRfHU3hLcBO3vn4AA2zDpdxbOnfJb",
     steamID: "76561199493367613",
     lastItemCreatedAt: null,
     timer: 40000,
   },
+  {
+    name: "LOL_VITALII(FROM URBOV)", // 02.08 end
+    apikey: "X-sMM_THkVABAH6W-rN8oGv7XSUUSMAq",
+    steamID: "76561198846173963",
+    lastItemCreatedAt: null,
+    timer: 40000,
+  },
+
 ];
 
 const getLastItemCreatedAt = async (user) => {
